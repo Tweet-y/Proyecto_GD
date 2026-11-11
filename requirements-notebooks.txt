@@ -1,0 +1,14 @@
+-r requirements.txt
+matplotlib>=3.7
+seaborn>=0.13
+requests>=2.31
+tqdm>=4.66
+aiohttp>=3.9
+dask[dataframe]>=2024.1
+pyarrow>=14
+ydata-profiling>=4.6
+ipykernel>=6.29
+geopandas>=0.14
+geodatasets>=2024.1
+contextily>=1.4
+country_converter>=1.2

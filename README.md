@@ -1,128 +1,92 @@
-# **📊 Dashboard Financiero COVID-19**
+# Análisis y visualización de tendencias epidemiológicas globales
 
-El proyecto tiene como objetivo aplicar los conocimientos adquiridos en el curso para procesar,
-analizar y visualizar grandes volúmenes de datos reales, usando Python y librerías como Pandas,
-NumPy, Matplotlib y Seaborn.
+Proyecto del curso de Gestión de Datos. Procesa, analiza y visualiza los reportes de COVID-19 de Johns Hopkins University (JHU CSSE) con Python, Pandas, NumPy, Matplotlib, Seaborn y un dashboard en Streamlit y Plotly.
 
-Se trabajo con los reportes diarios de COVID-19 publicados por la Johns Hopkins University (JHU
-CSSE), disponibles en formato CSV dentro del repositorio.
+El periodo cubierto por el dashboard es del 22 de enero de 2020 al 30 de junio de 2021. Al abrirlo, `dashboard/data.py` descarga las series temporales desde el repositorio de JHU. Hace falta conexión a internet; los CSV y Parquet locales son resultados de los notebooks, no la fuente del dashboard.
 
-Construido con **Python**, **Streamlit** y **Plotly**, diseñado para visualizar la evolución de la pandemia de COVID-19 con una estética financiera moderna y limpia.
+## Requisitos
 
-## **🛠️ Guía de Instalación**
+- Python 3.10 o superior
+- Conexión a internet la primera vez que se abre el dashboard
 
-### **1\. Instalar Python**
+## Instalación
 
-Instalar Python en tu sistema.
+Desde la raíz del repositorio:
 
-1. Descarga la última versión desde [python.org](https://www.python.org/downloads/).
-2. Ejecuta el instalador.
-
-### **2\. Preparar el Proyecto**
-
-1. Descarga este código en una carpeta de tu elección.
-2. Abre la terminal (Símbolo del sistema, PowerShell o Terminal) y navega hasta esa carpeta:  
-   cd ruta/a/tu/carpeta
-
-### **3\. Crear un Entorno Virtual (Recomendado)**
-
-Esto mantiene tu sistema limpio y evita conflictos con otras librerías.  
-**En Windows:**
-
-```Python
-python -m venv venv
-.\venv\Scripts\activate
+```bash
+python3 -m venv .venv
 ```
 
-```python
-# En caso de no encontrar la carpeta Scripts
-.\venv\bin\activate
+Activar el entorno:
+
+```bash
+# macOS / Linux
+source .venv/bin/activate
+
+# Windows (cmd)
+.\.venv\Scripts\activate
+
+# Windows (PowerShell)
+.\.venv\Scripts\Activate.ps1
 ```
 
-**En macOS / Linux:**
+Instalar dependencias del dashboard:
 
-```Python
-python3 -m venv venv
-source venv/bin/activate
-```
-
-_(Deberías ver (venv) al principio de la línea de comandos después de activar)._
-
-### **4\. Instalar Dependencias Básicas**
-
-Instala las librerías necesarias para ejecutar el dashboard con el siguiente comando:  
-pip install streamlit pandas plotly numpy
-
-## **📦 Instalación Completa de Dependencias (Para desarrollo y análisis adicionales)**
-
-Si necesitas ejecutar scripts adicionales o trabajar con notebooks, instala estas dependencias extra:
-
-### **1\. Comprobar Python y pip (asegúrate de usar el intérprete correcto)**
-
-```Python
-python --version
-python -m pip --version
-```
-
-### **2\. Actualizar pip e instalar Streamlit en el entorno actual**
-
-```
+```bash
 python -m pip install --upgrade pip
-python -m pip install streamlit
+python -m pip install -r requirements.txt
 ```
 
-### **3\. Instalar módulo plotly (para ver los gráficos)**
+Para los notebooks de limpieza, análisis y mapas, instalar además:
 
-```Python
-python -m pip install plotly
+```bash
+python -m pip install -r requirements-notebooks.txt
+python -m ipykernel install --user --name gd-covid --display-name "Python (GD COVID)"
 ```
 
-### **4\. Ejecutar la app usando el módulo (evita depender del PATH)**
+`geopandas` y `contextily` arrastran librerías geoespaciales. Si esa instalación falla, el dashboard sigue funcionando: solo se pierden los mapas de `03_visualizaciones.ipynb`.
 
-```Python
-python -m streamlit run main.py
+## Ejecutar el dashboard
+
+Con el entorno activado, desde la raíz del repositorio:
+
+```bash
+python -m streamlit run dashboard/main.py
 ```
 
-### 5\. Librerías adicionales
+Streamlit abre http://localhost:8501. La primera carga descarga tres CSV de JHU y puede tardar unos segundos. El caché dura una hora.
 
-Librerias necesarias para análisis de datos más profundos o ejecución de notebooks:
+El comando tiene que ser `dashboard/main.py`. No existe un `main.py` en la raíz, y los módulos `data`, `metrics` y `ui` se importan desde la carpeta `dashboard/`.
 
-```
-pip install ipykernel -U
-python -m pip install ipykernel
-python -m pip install pandas
-python -m pip install numpy
-python -m pip install seaborn
-python -m pip install dask
-pip install aiohttp -q
-python -m pip install ydata_profiling
-```
+## Notebooks
 
-## **▶️ Cómo Ejecutar el Dashboard**
+Ejecutarlos en este orden, con el kernel del entorno virtual:
 
-Una vez instalado todo, inicia la aplicación con este comando:
+1. `01_limpieza_datos.ipynb` o `01_limpieza_datos_optimizado.ipynb`
+2. `02_analisis_exploratorio.ipynb` o `02_analisis_exploratorio_optimizado.ipynb`
+3. `03_visualizaciones.ipynb` o `03_visualizaciones_optimizado.ipynb`
 
-```python
-streamlit run dashboard/main.py
-```
+Las versiones `*_optimizado` usan Dask y guardan Parquet en `data/`. `time` y `datetime` son de la biblioteca estándar: no hay que instalarlos con pip.
 
-- El navegador se abrirá automáticamente en http://localhost:8501.
-- Si es la primera vez, tardará unos segundos en descargar los datos iniciales.
+## Estructura
 
-## **📂 Estructura del Código**
+- `dashboard/main.py`: filtros, métricas y las dos vistas (dashboard y tabla).
+- `dashboard/ui.py`: estilos y componentes visuales.
+- `dashboard/data.py`: descarga, limpieza y mapeo de continentes de las series JHU.
+- `dashboard/metrics.py`: casos nuevos, medias móviles, picos y alerta de rebrote.
+- `data/`: Parquet generados por los notebooks.
+- `covid_clean_enero2021.csv`, `perfilado.html`, `grafico_regresion_por_pais.png`: salidas del análisis.
+- `requirements.txt`: dependencias del dashboard.
+- `requirements-notebooks.txt`: dependencias de los notebooks, incluye las del dashboard.
 
-El proyecto está organizado para ser fácil de entender y modificar:
+## Problemas frecuentes
 
-- **dashboard/main.py**: El cerebro de la aplicación. Conecta los datos, los cálculos y la interfaz.
-- **dashboard/ui.py**: El diseñador. Contiene todo el HTML, CSS y componentes visuales (tarjetas, sidebar, gráficos).
-- **dashboard/data.py**: El gestor de datos. Se encarga de descargar y limpiar la información de JHU.
-- **dashboard/metrics.py**: El matemático. Calcula tendencias, picos y alertas de rebrote.
+**`streamlit` no se reconoce como comando.** El entorno no está activado, o el ejecutable no está en el `PATH`. Usar `python -m streamlit run dashboard/main.py`.
 
-## **🐛 Solución de Problemas Comunes**
+**`ModuleNotFoundError: No module named 'data'` (o `ui` / `metrics`).** El comando se lanzó como `streamlit run main.py` o desde dentro de otra carpeta. Volver a la raíz del repositorio y usar `python -m streamlit run dashboard/main.py`.
 
-- **"streamlit no se reconoce como un comando..."**:
-  - Asegúrate de haber activado el entorno virtual (venv).
-  - Si estás en Windows, verifica que agregaste Python al PATH durante la instalación.
-  - Prueba ejecutando: python -m streamlit run dashboard/main.py.
-- **Error "ModuleNotFoundError":**
-  - Te falta instalar alguna librería. Ejecuta de nuevo el paso 4 de la instalación o la sección de dependencias completa.
+**`ModuleNotFoundError` de `streamlit`, `pandas` o `plotly`.** El `pip` no es el del entorno virtual. Con el entorno activado: `python -m pip install -r requirements.txt`.
+
+**El dashboard dice que no pudo cargar los datos.** No hay acceso a `raw.githubusercontent.com`, o JHU cambió la ruta de los CSV. Revisar la conexión y el mensaje de error que muestra la app.
+
+**PowerShell bloquea la activación.** Ejecutar una vez `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` y volver a activar el entorno.
