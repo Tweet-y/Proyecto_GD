@@ -1,6 +1,15 @@
 import pandas as pd
 import numpy as np
 
+def _as_float(series):
+    return pd.to_numeric(series, errors="coerce")
+
+def _rolling_mean(series, window):
+    numeric = _as_float(series)
+    if not numeric.notna().any():
+        return pd.Series(np.nan, index=series.index)
+    return numeric.rolling(window=window, min_periods=1).mean()
+
 def calculate_growth_and_rebound(df_grouped):
     """
     Calcula métricas avanzadas incluyendo tendencias de Fallecidos y Recuperados.
@@ -15,14 +24,17 @@ def calculate_growth_and_rebound(df_grouped):
     # --- 1. CÁLCULO DE DATOS DIARIOS (Nuevos Casos, Muertes, Recuperados) ---
     cols = {'confirmed': 'new_cases', 'deceased': 'new_deaths', 'recovered': 'new_recovered'}
     for c_sum, c_new in cols.items():
-        if c_sum in df_grouped.columns:
-            df_grouped[c_new] = df_grouped[c_sum].diff().fillna(0).clip(lower=0)
-        else:
-            df_grouped[c_new] = 0
-            
-    # --- CÁLCULO DE MEDIAS MÓVILES  ---
-    df_grouped['new_deaths_7d'] = df_grouped['new_deaths'].rolling(window=7).mean().fillna(0)
-    df_grouped['new_recovered_7d'] = df_grouped['new_recovered'].rolling(window=7).mean().fillna(0)
+        values = _as_float(df_grouped[c_sum]) if c_sum in df_grouped.columns else pd.Series(np.nan, index=df_grouped.index)
+        if not values.notna().any():
+            df_grouped[c_new] = np.nan
+            continue
+        daily = values.diff().clip(lower=0)
+        if values.notna().all():
+            daily = daily.fillna(0)
+        df_grouped[c_new] = daily
+
+    df_grouped['new_deaths_7d'] = _rolling_mean(df_grouped['new_deaths'], 7).fillna(0)
+    df_grouped['new_recovered_7d'] = _rolling_mean(df_grouped['new_recovered'], 7)
 
     # no calculara nada con menos de 5 datos
     if len(df_grouped) < 5:
@@ -31,7 +43,7 @@ def calculate_growth_and_rebound(df_grouped):
     # --- 2. CÁLCULO DE PICOS  ---
     peaks = {}
     for metric in ['new_cases', 'new_deaths', 'new_recovered']:
-        if metric in df_grouped.columns:
+        if metric in df_grouped.columns and df_grouped[metric].notna().any():
             max_idx = df_grouped[metric].idxmax()
             peaks[f'{metric}_peak_date'] = df_grouped.loc[max_idx, 'date']
             peaks[f'{metric}_peak_val'] = df_grouped.loc[max_idx, metric]
@@ -50,19 +62,15 @@ def calculate_growth_and_rebound(df_grouped):
         avg_growth = 0
         is_rebound = False
 
-    # 3.1.Muertes 
-    avg_period_deaths = df_grouped['new_deaths_7d'].mean()
-    last_7d_deaths = df_grouped['new_deaths_7d'].iloc[-1]
-    
-    high_deaths = last_7d_deaths > avg_period_deaths * 1.5  # 50% por encima del promedio
-    low_deaths = last_7d_deaths < avg_period_deaths * 0.5   # 50% por debajo del promedio
+    def above_baseline(series):
+        average = series.mean()
+        last = series.iloc[-1]
+        if pd.isna(average) or pd.isna(last) or average == 0:
+            return False, False
+        return bool(last > average * 1.5), bool(last < average * 0.5)
 
-    # 3.2. Recuperación 
-    avg_period_recovered = df_grouped['new_recovered_7d'].mean()
-    last_7d_recovered = df_grouped['new_recovered_7d'].iloc[-1]
-    
-    high_recovered = last_7d_recovered > avg_period_recovered * 1.5
-    low_recovered = last_7d_recovered < avg_period_recovered * 0.5
+    high_deaths, low_deaths = above_baseline(df_grouped['new_deaths_7d'])
+    high_recovered, low_recovered = above_baseline(df_grouped['new_recovered_7d'])
 
     # --- 4. EMPAQUETADO FINAL ---
     insights = {

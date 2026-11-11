@@ -2,7 +2,7 @@
 
 Proyecto del curso de Gestión de Datos. Procesa, analiza y visualiza los reportes de COVID-19 de Johns Hopkins University (JHU CSSE) con Python, Pandas, NumPy, Matplotlib, Seaborn y un dashboard en Streamlit y Plotly.
 
-El periodo cubierto por el dashboard es del 22 de enero de 2020 al 30 de junio de 2021. Al abrirlo, `dashboard/data.py` descarga las series temporales desde el repositorio de JHU. Hace falta conexión a internet; los CSV y Parquet locales son resultados de los notebooks, no la fuente del dashboard.
+El periodo que se puede consultar va del 22 de enero de 2020 al 9 de marzo de 2023, que es hasta donde llega la serie global de JHU. Los recuperados dejan de estar publicados el 4 de agosto de 2021: en esas fechas el dashboard muestra «Sin reporte» en vez de un cero. Al abrirlo, `dashboard/data.py` descarga las series temporales desde el repositorio de JHU. Hace falta conexión a internet.
 
 ## Requisitos
 

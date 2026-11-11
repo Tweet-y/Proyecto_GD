@@ -1,5 +1,5 @@
+import html
 import streamlit as st
-import streamlit.components.v1 as components
 
 # --- CONSTANTES DE COLOR ---
 BG_COLOR = "#f3f4f6"   
@@ -26,8 +26,24 @@ def setup_page_style():
             width: 100% !important;
         }}
         
-        header {{ visibility: hidden; }}
-        .stDeployButton, div[data-testid="stDecoration"] {{ display: none; }}
+        [data-testid="stDecoration"],
+        [data-testid="stStatusWidget"],
+        [data-testid="stMainMenu"],
+        [data-testid="stAppDeployButton"],
+        .stAppDeployButton,
+        .stDeployButton {{
+            display: none !important;
+        }}
+        [data-testid="stHeader"] {{
+            background: transparent !important;
+        }}
+        [data-testid="stExpandSidebarButton"] {{
+            visibility: visible !important;
+            background: #ffffff !important;
+            border: 1px solid #e5e7eb !important;
+            border-radius: 0.5rem !important;
+            color: #1f2937 !important;
+        }}
         
         /* Ajuste del contenido principal para el sidebar de 5rem */
         .block-container {{
@@ -64,11 +80,29 @@ def setup_page_style():
         }}
 
         /* --- SIDEBAR MODIFICADO (Contenedor principal) --- */
-        section[data-testid="stSidebar"] {{
-            width: 5rem !important; /* Ancho reducido a 5rem */
-            background-color: #1f2937; /* Gris oscuro */
-            padding-top: 1rem;      
-            padding-left: 0.25rem; /* Pequeño ajuste para centrado */
+        [data-testid="stDateInputField"],
+        [data-testid="stMultiSelect"] div[data-baseweb="select"] > div,
+        [data-testid="stSelectbox"] div[data-baseweb="select"] > div {{
+            background-color: #ffffff !important;
+            color: #1f2937 !important;
+        }}
+        [data-testid="stDateInputField"] span,
+        [data-testid="stDateInputField"] input {{
+            color: #1f2937 !important;
+            -webkit-text-fill-color: #1f2937 !important;
+        }}
+
+        [data-testid="stSidebarContent"] {{
+            overflow: visible !important;
+        }}
+
+        section[data-testid="stSidebar"][aria-expanded="true"] {{
+            width: 5.75rem !important;
+            min-width: 5.75rem !important;
+            max-width: 5.75rem !important;
+            background-color: #1f2937;
+            padding-top: 0.5rem;
+            padding-left: 0.25rem;
             padding-right: 0.25rem;
         }}
         
@@ -82,17 +116,48 @@ def setup_page_style():
             padding-top: 1rem;
         }}
         .sidebar-item {{
-            width: 4.2rem;
-            height: 4.2rem;
+            position: relative;
+            width: 4.4rem;
+            min-height: 4.4rem;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            background-color: white; /* Color de fondo */
+            gap: 0.2rem;
+            padding: 0.45rem 0.2rem;
+            background-color: white;
             border-radius: 0.75rem;
             cursor: pointer;
             transition: all 0.2s;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }}
+        .sidebar-caption {{
+            color: #374151;
+            font-size: 0.62rem;
+            font-weight: 600;
+            line-height: 1.15;
+            text-align: center;
+        }}
+        .sidebar-help {{
+            display: none;
+            position: absolute;
+            left: calc(100% + 0.6rem);
+            top: 0.35rem;
+            width: 11rem;
+            padding: 0.45rem 0.6rem;
+            background: #111827;
+            color: #f9fafb;
+            border-radius: 0.45rem;
+            font-size: 0.72rem;
+            font-weight: 500;
+            line-height: 1.35;
+            text-align: left;
+            z-index: 100000;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+        }}
+        .sidebar-item:hover .sidebar-help,
+        .sidebar-item:focus-within .sidebar-help {{
+            display: block;
         }}
         .sidebar-item:hover {{
             background-color: #f3f4f6;
@@ -110,8 +175,132 @@ def setup_page_style():
         .sidebar-btn-container a {{
             text-decoration: none; /* Quitar subrayado por defecto del enlace */
         }}
+
+        [data-testid="stMarkdown"],
+        [data-testid="stMarkdownContainer"],
+        [data-testid="column"],
+        [data-testid="stVerticalBlock"] {{
+            overflow: visible !important;
+        }}
+
+        .field-label {{
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #374151;
+            margin: 0 0 0.35rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+        }}
+        .info-tip {{
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.05rem;
+            height: 1.05rem;
+            border-radius: 999px;
+            background: #eef2ff;
+            color: #4338ca;
+            border: 1px solid #c7d2fe;
+            font-size: 0.68rem;
+            font-weight: 700;
+            font-family: Georgia, "Times New Roman", serif;
+            text-transform: none;
+            cursor: help;
+            flex-shrink: 0;
+            line-height: 1;
+        }}
+        .info-tip .info-tip-box {{
+            display: none;
+            position: absolute;
+            left: 50%;
+            top: calc(100% + 8px);
+            transform: translateX(-50%);
+            width: max-content;
+            max-width: 280px;
+            padding: 0.55rem 0.7rem;
+            background: #111827;
+            color: #f9fafb;
+            border-radius: 0.5rem;
+            font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-size: 0.75rem;
+            font-weight: 500;
+            font-style: normal;
+            line-height: 1.4;
+            letter-spacing: 0;
+            text-transform: none;
+            text-align: left;
+            white-space: normal;
+            z-index: 10000;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+        }}
+        .info-tip:hover .info-tip-box,
+        .info-tip:focus .info-tip-box,
+        .info-tip:focus-within .info-tip-box {{
+            display: block;
+        }}
+        .data-notice {{
+            margin: 0 0 0.65rem 0;
+            padding: 0;
+            color: #6b7280;
+            background: transparent;
+            border: none;
+            font-size: 0.78rem;
+            line-height: 1.35;
+        }}
+        .page-title {{
+            margin: 0 0 0.85rem 0;
+            padding-bottom: 0.35rem;
+            border-bottom: 2px solid #7c3aed;
+        }}
+        .page-title h2 {{
+            margin: 0;
+            color: #1f2937;
+            font-size: 1.05rem;
+            font-weight: 600;
+            letter-spacing: 0.01em;
+            line-height: 1.3;
+        }}
+        .help-row {{
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem 1rem;
+            margin: 0 0 0.75rem 0;
+            color: #4b5563;
+            font-size: 0.8rem;
+        }}
+        .help-row > span {{
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }}
     </style>
     """, unsafe_allow_html=True)
+
+def info_badge(help_text, floating=True):
+    """Icono «i». El recuadro aparece al pasar el mouse; title cubre el mismo texto."""
+    safe = html.escape(help_text, quote=True)
+    box = f'<span class="info-tip-box" role="tooltip">{safe}</span>' if floating else ""
+    return (
+        f'<span class="info-tip" tabindex="0" title="{safe}" aria-label="{safe}">i{box}</span>'
+    )
+
+def field_label(label, help_text):
+    st.markdown(
+        f'<p class="field-label">{html.escape(label)}{info_badge(help_text)}</p>',
+        unsafe_allow_html=True,
+    )
+
+def notice(text):
+    st.markdown(f'<p class="data-notice">{html.escape(text)}</p>', unsafe_allow_html=True)
+
+def help_row(items):
+    chips = "".join(
+        f"<span>{html.escape(label)}{info_badge(description)}</span>"
+        for label, description in items
+    )
+    st.markdown(f'<div class="help-row">{chips}</div>', unsafe_allow_html=True)
 
 def render_sidebar():
     """
@@ -129,14 +318,18 @@ def render_sidebar():
         
         html_content = f"""
         <div class="sidebar-btn-container">
-            <a href="?page=dashboard" target="_self">
+            <a href="?page=dashboard" target="_self" title="Indicadores, filtros y gráficos del rango elegido.">
                  <div class="sidebar-item">
                     {icon_dashboard}
+                    <span class="sidebar-caption">Panel</span>
+                    <span class="sidebar-help">Indicadores, filtros y gráficos del rango elegido.</span>
                  </div>
             </a>
-            <a href="?page=table" target="_self">
+            <a href="?page=table" target="_self" title="Tabla con cada país y cada fecha de la serie.">
                  <div class="sidebar-item">
                     {icon_table}
+                    <span class="sidebar-caption">Registros</span>
+                    <span class="sidebar-help">Tabla con cada país y cada fecha de la serie.</span>
                  </div>
             </a>
         </div>
@@ -160,7 +353,7 @@ def render_header(title="Dashboard", subtitle="COVID-19 Global Tracking"):
     """
     st.markdown(header_html, unsafe_allow_html=True)
 
-def metric_card(title, value, subtitle, icon_path, color_theme="purple"):
+def metric_card(title, value, subtitle, icon_path, color_theme="purple", help_text=""):
     colors = {
         "purple": ("#f3e8ff", "#7c3aed"),
         "green": ("#dcfce7", "#16a34a"),
@@ -179,14 +372,14 @@ def metric_card(title, value, subtitle, icon_path, color_theme="purple"):
         </div>
         <div style="flex-grow: 1; min-width: 0;">
             <span style="display:block; font-size:1.5rem; font-weight:700; color:#1f2937; line-height:1.2;">{value}</span>
-            <span style="display:block; font-size:0.75rem; font-weight:600; color:#6b7280; text-transform:uppercase; letter-spacing:0.05em;">{title}</span>
+            <span style="display:flex; align-items:center; gap:0.35rem; font-size:0.75rem; font-weight:600; color:#6b7280; text-transform:uppercase; letter-spacing:0.05em;">{title}{info_badge(help_text) if help_text else ""}</span>
             <span style="display:block; font-size:0.75rem; color:#9ca3af; margin-top:0.25rem;">{subtitle}</span>
         </div>
     </div>
     """
     st.markdown(html, unsafe_allow_html=True)
 
-def render_chart_card(title, fig, height=400):
+def render_chart_card(title, fig, height=400, help_text=""):
     """
     Renderiza gráfico usando alturas fijas en píxeles para evitar cortes.
     """
@@ -227,7 +420,24 @@ def render_chart_card(title, fig, height=400):
                 height: 60px;
                 display: flex;
                 align-items: center;
+                gap: 0.4rem;
                 flex-shrink: 0;
+            }}
+            .info-tip {{
+                position: relative;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 1.05rem;
+                height: 1.05rem;
+                border-radius: 999px;
+                background: #eef2ff;
+                color: #4338ca;
+                border: 1px solid #c7d2fe;
+                font-size: 0.68rem;
+                font-weight: 700;
+                font-family: Georgia, serif;
+                cursor: help;
             }}
             .card-body {{
                 padding: 0;
@@ -240,7 +450,8 @@ def render_chart_card(title, fig, height=400):
     <body>
         <div class="card">
             <div class="card-header">
-                <h3 class="font-bold text-lg text-gray-800 m-0">{title}</h3>
+                <h3 class="font-bold text-lg text-gray-800 m-0">{html.escape(title)}</h3>
+                {info_badge(help_text, floating=False) if help_text else ""}
             </div>
             <div class="card-body">
                 {plot_html}
@@ -249,25 +460,23 @@ def render_chart_card(title, fig, height=400):
     </body>
     </html>
     """
-    components.html(html_code, height=height+5, scrolling=False)
+    st.iframe(html_code, height=height + 5)
 
-def alert_card(is_rebounding):
+def alert_card(is_rebounding, help_text=""):
     bg_hex = "#fee2e2" if is_rebounding else "#dcfce7"
     text_hex = "#dc2626" if is_rebounding else "#16a34a"
-    icon = "🚨" if is_rebounding else "✅"
-    title = "ALERTA DE REBROTE DETECTADA" if is_rebounding else "TENDENCIA ESTABLE"
-    desc = "Se observa un aumento sostenido en la media de nuevos casos." if is_rebounding else "No se detectan patrones de crecimiento acelerado."
-    
-    html = f"""
-    <div style="background-color:{bg_hex}; border:1px solid {text_hex}; border-radius:0.75rem; padding:1.5rem; display:flex; align-items:center; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); height:100%;">
-        <div style="font-size:2.5rem; margin-right:1.5rem;">{icon}</div>
+    title = "Alerta de rebrote" if is_rebounding else "Tendencia estable"
+    desc = "La media móvil de 7 días subió en los últimos 3 días." if is_rebounding else "La media móvil de 7 días no acumula tres alzas al cierre del rango."
+
+    card_html = f"""
+    <div style="background-color:{bg_hex}; border:1px solid {text_hex}; border-radius:0.75rem; padding:1rem 1.15rem; display:flex; align-items:center; height:100%;">
         <div>
-            <h4 style="margin:0; color:{text_hex}; font-weight:700; font-size:1.1rem; margin-bottom:0.25rem;">{title}</h4>
-            <p style="margin:0; color:{text_hex}; font-size:0.95rem; opacity:0.9; line-height:1.4;">{desc}</p>
+            <h4 style="margin:0 0 0.25rem 0; color:{text_hex}; font-weight:650; font-size:0.95rem; display:flex; align-items:center; gap:0.4rem;">{title}{info_badge(help_text) if help_text else ""}</h4>
+            <p style="margin:0; color:{text_hex}; font-size:0.82rem; line-height:1.35;">{desc}</p>
         </div>
     </div>
     """
-    st.markdown(html, unsafe_allow_html=True)
+    st.markdown(card_html, unsafe_allow_html=True)
 
 def get_chart_config():
     return dict(
@@ -280,22 +489,7 @@ def get_chart_config():
     )
     
 def render_top_banner(title):
-    """
-    Renderiza el banner oscuro prominente que ocupa todo el ancho, estilo Website Conversions.
-    """
-    banner_html = f"""
-    <div style="
-        background-color: #1f2937; 
-        color: white; 
-        padding: 1.2rem 2rem; 
-        margin-bottom: 2rem; 
-        border-radius: 0.75rem; 
-        display: flex; 
-        align-items: center;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        border-left: 5px solid #7c3aed; /* Acento Morado */
-    ">
-        <h2 style="font-size: 1.5rem; font-weight: 700; margin: 0; letter-spacing: 0.05em; text-transform: uppercase;">{title}</h2>
-    </div>
-    """
-    st.markdown(banner_html, unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="page-title"><h2>{html.escape(title)}</h2></div>',
+        unsafe_allow_html=True,
+    )

@@ -1,48 +1,76 @@
+import urllib.request
 import streamlit as st
 import pandas as pd
+
+BASE_URL = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/"
+SERIES = (
+    ("time_series_covid19_confirmed_global.csv", "confirmed"),
+    ("time_series_covid19_deaths_global.csv", "deceased"),
+    ("time_series_covid19_recovered_global.csv", "recovered"),
+)
+
+def fetch_and_melt(filename, value_name):
+    """Descarga una serie global de JHU y la deja en formato país-fecha."""
+    url = f"{BASE_URL}{filename}"
+    with urllib.request.urlopen(url, timeout=60) as response:
+        frame = pd.read_csv(response)
+    required = {"Country/Region", "Province/State", "Lat", "Long"}
+    missing = required.difference(frame.columns)
+    if missing:
+        raise ValueError(f"faltan columnas {sorted(missing)}")
+    frame = frame.drop(columns=["Lat", "Long", "Province/State"])
+    frame = frame.groupby("Country/Region", as_index=False).sum(numeric_only=True)
+    melted = frame.melt(id_vars=["Country/Region"], var_name="date", value_name=value_name)
+    melted["date"] = pd.to_datetime(melted["date"], format="%m/%d/%y")
+    return melted
+
+def mask_unreported_recovered(frame):
+    """Los ceros posteriores al último recuperado real son ausencia de reporte, no altas."""
+    recovered = frame["recovered"]
+    positive = recovered.gt(0).eq(True)
+    last_positive = frame.loc[positive].groupby("country")["date"].max()
+    last_date = frame["country"].map(last_positive)
+    ever_confirmed = frame.groupby("country")["confirmed"].transform("max") > 0
+    never_reported = last_date.isna() & ever_confirmed
+    stopped_reporting = last_date.notna() & (frame["date"] > last_date)
+    frame.loc[never_reported | stopped_reporting, "recovered"] = pd.NA
+    return frame
 
 # caché para velocidad
 @st.cache_data(ttl=3600)
 def load_data_simple():
     """
-    Carga datos optimizada y asigna continentes a TODOS los países.
+    Carga confirmados, fallecidos y recuperados. Si una serie falla, las otras siguen.
+    Devuelve el DataFrame y advertencias para mostrar en la interfaz.
     """
-    base_url = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/"
-    
-    def fetch_and_melt(filename, value_name):
-        url = f"{base_url}{filename}"
+    loaded = {}
+    warnings = []
+    for filename, value_name in SERIES:
         try:
-            df = pd.read_csv(url)
-            df = df.drop(columns=['Lat', 'Long', 'Province/State'])
-            df = df.groupby('Country/Region').sum().reset_index()
-            df_melted = df.melt(id_vars=['Country/Region'], var_name='date', value_name=value_name)
-            df_melted['date'] = pd.to_datetime(df_melted['date'])
-            return df_melted
-        except Exception as e:
-            st.error(f"Error cargando {filename}: {e}")
-            return pd.DataFrame()
+            loaded[value_name] = fetch_and_melt(filename, value_name)
+        except Exception as exc:
+            loaded[value_name] = None
+            warnings.append(f"No se pudo cargar {filename}: {exc}")
 
-    # 1. Carga
-    df_confirmed = fetch_and_melt("time_series_covid19_confirmed_global.csv", "confirmed")
-    df_deaths = fetch_and_melt("time_series_covid19_deaths_global.csv", "deceased")
-    df_recovered = fetch_and_melt("time_series_covid19_recovered_global.csv", "recovered")
+    if loaded["confirmed"] is None:
+        return pd.DataFrame(), tuple(warnings)
 
-    # 2. Fusión
-    if df_confirmed.empty: return pd.DataFrame()
-    
-    df_final = pd.merge(df_confirmed, df_deaths, on=['Country/Region', 'date'], how='left')
-    df_final = pd.merge(df_final, df_recovered, on=['Country/Region', 'date'], how='left')
-    
-    df_final.rename(columns={'Country/Region': 'country'}, inplace=True)
-    df_final = df_final.fillna(0)
-    
-    # 3. Filtrado de Fechas (Enero 2020 - Junio 2021)
-    mask = (df_final['date'] >= '2020-01-22') & (df_final['date'] <= '2021-06-30')
-    df_final = df_final[mask]
+    df_final = loaded["confirmed"]
+    if loaded["deceased"] is None:
+        df_final["deceased"] = pd.NA
+    else:
+        df_final = pd.merge(df_final, loaded["deceased"], on=["Country/Region", "date"], how="left")
 
-    # 4. Cálculos
-    df_final['active'] = df_final['confirmed'] - df_final['deceased'] - df_final['recovered']
-    df_final['active'] = df_final['active'].clip(lower=0)
+    if loaded["recovered"] is None:
+        df_final["recovered"] = pd.NA
+    else:
+        df_final = pd.merge(df_final, loaded["recovered"], on=["Country/Region", "date"], how="left")
+
+    df_final.rename(columns={"Country/Region": "country"}, inplace=True)
+    df_final["deceased"] = df_final["deceased"].fillna(0)
+    df_final = mask_unreported_recovered(df_final)
+    # Activos solo cuando hay recuperados reportados. Un cero posterior al corte no es un alta.
+    df_final["active"] = (df_final["confirmed"] - df_final["deceased"] - df_final["recovered"]).clip(lower=0)
 
     # 5. Mapeo Completo de Continentes
     continent_map = {
@@ -109,12 +137,14 @@ def load_data_simple():
         # Oceania
         'Australia': 'Oceania', 'Fiji': 'Oceania', 'Kiribati': 'Oceania', 'Marshall Islands': 'Oceania',
         'Micronesia': 'Oceania', 'New Zealand': 'Oceania', 'Palau': 'Oceania', 'Papua New Guinea': 'Oceania',
-        'Samoa': 'Oceania', 'Solomon Islands': 'Oceania', 'Tonga': 'Oceania', 'Vanuatu': 'Oceania'
+        'Samoa': 'Oceania', 'Solomon Islands': 'Oceania', 'Tonga': 'Oceania', 'Vanuatu': 'Oceania',
+        'Nauru': 'Oceania', 'Tuvalu': 'Oceania',
+        'West Bank and Gaza': 'Asia',
     }
     
     def get_continent(country):
         return continent_map.get(country, 'Other')
 
     df_final['continent'] = df_final['country'].apply(get_continent)
-    
-    return df_final
+
+    return df_final, tuple(warnings)
