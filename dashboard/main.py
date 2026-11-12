@@ -191,7 +191,6 @@ if current_page == "dashboard":
     # FILA 3: GRÁFICOS
     st.markdown("<div class='mb-6'></div>", unsafe_allow_html=True)
     g1, g2 = st.columns(2, gap="large")
-    CHART_HEIGHT = 400
 
     with g1:
         labels = {"confirmed": "Confirmados", "active": "Activos", "deceased": "Fallecidos"}
@@ -205,13 +204,17 @@ if current_page == "dashboard":
             y=series,
             color_discrete_map={"Confirmados": "#7c3aed", "Activos": "#60a5fa", "Fallecidos": "#f87171"},
         )
-        fig.update_layout(legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0, title=None))
-        ui.render_chart_card("Curva de evolución temporal", fig, height=CHART_HEIGHT, help_text=HELP["evolution"])
+        ui.render_chart_card("Curva de evolución temporal", fig, help_text=HELP["evolution"])
 
     with g2:
-        fig_bar = px.bar(timeline_metrics, x="date", y="new_cases")
+        fig_bar = px.bar(
+            timeline_metrics,
+            x="date",
+            y="new_cases",
+            labels={"date": "Fecha", "new_cases": "Casos nuevos"},
+        )
         fig_bar.update_traces(marker_color="#8b5cf6")
-        ui.render_chart_card("Nuevos casos diarios", fig_bar, height=CHART_HEIGHT, help_text=HELP["daily"])
+        ui.render_chart_card("Nuevos casos diarios", fig_bar, help_text=HELP["daily"])
 
 elif current_page == "table":
     # ==========================================
@@ -229,10 +232,10 @@ elif current_page == "table":
             ui.field_label("Ordenar por", HELP["sort"])
             sort_labels = {
                 "Fecha": "date",
-                "Confirmados": "confirmed",
+                "Confirmados acumulados": "confirmed",
                 "Activos": "active",
-                "Fallecidos": "deceased",
-                "Recuperados": "recovered",
+                "Fallecidos acumulados": "deceased",
+                "Recuperados acumulados": "recovered",
             }
             sort_choice = st.selectbox("Ordenar por", list(sort_labels), index=0, label_visibility="collapsed")
             sort_by = sort_labels[sort_choice]
@@ -247,9 +250,9 @@ elif current_page == "table":
         "date": "Fecha",
         "country": "País",
         "continent": "Continente",
-        "confirmed": "Confirmados",
-        "deceased": "Fallecidos",
-        "recovered": "Recuperados",
+        "confirmed": "Confirmados acumulados",
+        "deceased": "Fallecidos acumulados",
+        "recovered": "Recuperados acumulados",
         "active": "Activos",
     })
     
@@ -258,10 +261,10 @@ elif current_page == "table":
         ("Fecha", "Día del reporte en la serie temporal de Johns Hopkins."),
         ("País", "Nombre del país o territorio tal como lo publica la fuente."),
         ("Continente", "Asignación usada por los filtros. Other no es un continente geográfico."),
-        ("Confirmados", HELP["confirmed"]),
+        ("Confirmados acumulados", HELP["confirmed"]),
         ("Activos", HELP["active"]),
-        ("Recuperados", HELP["recovered"]),
-        ("Fallecidos", HELP["deceased"]),
+        ("Recuperados acumulados", HELP["recovered"]),
+        ("Fallecidos acumulados", HELP["deceased"]),
     ])
     st.markdown(f"""<div class="bg-white shadow-sm rounded-xl border border-gray-100 p-6"><h3 class="font-bold text-lg text-gray-800 mb-4">Registros detallados ({len(df_table):,.0f} filas)</h3></div>""", unsafe_allow_html=True)
     st.dataframe(df_table, width="stretch", hide_index=True, height=600)

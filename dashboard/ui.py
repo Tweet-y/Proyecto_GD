@@ -20,12 +20,6 @@ def setup_page_style():
             color: {TEXT_COLOR};
         }}
         
-        /* RESET GLOBAL PLOTLY */
-        .js-plotly-plot, .plot-container {{
-            height: 100% !important;
-            width: 100% !important;
-        }}
-        
         [data-testid="stDecoration"],
         [data-testid="stStatusWidget"],
         [data-testid="stMainMenu"],
@@ -262,6 +256,15 @@ def setup_page_style():
             letter-spacing: 0.01em;
             line-height: 1.3;
         }}
+        .chart-heading {{
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            margin: 0 0 0.25rem 0;
+            color: #1f2937;
+            font-size: 1rem;
+            font-weight: 600;
+        }}
         .help-row {{
             display: flex;
             flex-wrap: wrap;
@@ -379,88 +382,20 @@ def metric_card(title, value, subtitle, icon_path, color_theme="purple", help_te
     """
     st.markdown(html, unsafe_allow_html=True)
 
-def render_chart_card(title, fig, height=400, help_text=""):
-    """
-    Renderiza gráfico usando alturas fijas en píxeles para evitar cortes.
-    """
-    chart_height = height - 70 
-    
+def render_chart_card(title, fig, height=340, help_text=""):
     fig.update_layout(
-        autosize=True,
-        height=chart_height, 
-        margin=dict(l=40, r=10, t=10, b=40), 
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)',
+        height=height,
+        margin=dict(l=8, r=8, t=36, b=8),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0, title_text=""),
         xaxis_title=None,
-        yaxis_title=None
+        yaxis_title=None,
     )
-    
-    plot_html = fig.to_html(full_html=False, include_plotlyjs='cdn', config={'displayModeBar': False, 'responsive': True})
-    
-    html_code = f"""
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <script src="https://cdn.tailwindcss.com"></script>
-        <style>
-            body {{ margin: 0; padding: 0; overflow: hidden; font-family: sans-serif; }}
-            .card {{
-                background-color: white;
-                border: 1px solid #e5e7eb;
-                border-radius: 0.75rem;
-                box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-                height: {height}px; 
-                display: flex;
-                flex-direction: column;
-                overflow: hidden;
-            }}
-            .card-header {{
-                padding: 1rem 1.5rem;
-                border-bottom: 1px solid #f3f4f6;
-                height: 60px;
-                display: flex;
-                align-items: center;
-                gap: 0.4rem;
-                flex-shrink: 0;
-            }}
-            .info-tip {{
-                position: relative;
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                width: 1.05rem;
-                height: 1.05rem;
-                border-radius: 999px;
-                background: #eef2ff;
-                color: #4338ca;
-                border: 1px solid #c7d2fe;
-                font-size: 0.68rem;
-                font-weight: 700;
-                font-family: Georgia, serif;
-                cursor: help;
-            }}
-            .card-body {{
-                padding: 0;
-                height: {chart_height}px;
-                width: 100%;
-                overflow: hidden;
-            }}
-        </style>
-    </head>
-    <body>
-        <div class="card">
-            <div class="card-header">
-                <h3 class="font-bold text-lg text-gray-800 m-0">{html.escape(title)}</h3>
-                {info_badge(help_text, floating=False) if help_text else ""}
-            </div>
-            <div class="card-body">
-                {plot_html}
-            </div>
-        </div>
-    </body>
-    </html>
-    """
-    st.iframe(html_code, height=height + 5)
+    with st.container(border=True):
+        st.markdown(
+            f'<div class="chart-heading"><span>{html.escape(title)}</span>{info_badge(help_text) if help_text else ""}</div>',
+            unsafe_allow_html=True,
+        )
+        st.plotly_chart(fig, width="stretch", theme="streamlit", config={"displayModeBar": False})
 
 def alert_card(is_rebounding, help_text=""):
     bg_hex = "#fee2e2" if is_rebounding else "#dcfce7"
